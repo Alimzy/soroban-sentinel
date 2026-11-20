@@ -4,6 +4,7 @@ pub mod bundle;
 pub mod cold_storage;
 pub mod compare;
 pub mod entry;
+pub mod events;
 pub mod footprint;
 pub mod risk;
 pub mod scenario;
@@ -17,6 +18,10 @@ pub use compare::{
     ChangeCategory, EntryDiff, MAX_BASELINE_FILE_BYTES,
 };
 pub use entry::{Durability, EntryType, StorageEntry};
+pub use events::{
+    classify_state_archival_event, ContractEvent, DecodedContractEvent, SorobanEventType,
+    StateArchivalEventKind,
+};
 pub use footprint::{AtRiskFootprint, FootprintAccess, FootprintValidation, FootprintValidator};
 pub use risk::{
     evaluate_risk, RiskLevel, ThresholdConfig, DEFAULT_CRITICAL_LEDGERS, DEFAULT_WARNING_LEDGERS,
