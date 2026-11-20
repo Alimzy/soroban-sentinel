@@ -7,6 +7,10 @@ license.workspace = true
 readme = "../../README.md"
 description = "Core domain logic, RPC client, and risk engine for Soroban Sentinel"
 
+[features]
+# Test-only entry points for the fuzz harnesses in `fuzz/`. Not enabled by default.
+fuzzing = []
+
 [dependencies]
 stellar-xdr.workspace = true
 stellar-strkey.workspace = true
@@ -19,3 +23,4 @@ thiserror.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true
+tokio = { version = "1.38", features = ["macros", "rt-multi-thread", "time", "test-util"] }

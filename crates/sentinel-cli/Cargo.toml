@@ -22,6 +22,7 @@ tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 comfy-table.workspace = true
+csv.workspace = true
 thiserror.workspace = true
 reqwest.workspace = true
 stellar-xdr.workspace = true
