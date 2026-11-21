@@ -263,6 +263,7 @@ pub fn compute_overall_status(entries: &[StorageEntryReport]) -> RiskLevel {
 }
 
 /// Safely computes the binary byte size from base64 XDR string.
+#[tracing::instrument(skip(entry_xdr_base64), fields(xdr.base64_len = entry_xdr_base64.len()))]
 fn compute_byte_size(entry_xdr_base64: &str) -> usize {
     if let Ok(entry) =
         stellar_xdr::curr::LedgerEntry::from_xdr_base64(entry_xdr_base64, safe_xdr_limits())
@@ -334,6 +335,15 @@ impl<R: LedgerReader> ScanContractUseCase<R> {
     }
 
     /// Executes the full contract scan workflow.
+    #[tracing::instrument(
+        skip(self, request),
+        fields(
+            contract_id = %request.contract_id_strkey,
+            network = request.network.as_deref().unwrap_or("testnet"),
+            entry.count = tracing::field::Empty,
+            overall.status = tracing::field::Empty
+        )
+    )]
     pub async fn execute(&self, request: ScanRequest) -> SentinelResult<TTLReport> {
         let contract_id_bytes = parse_contract_id(&request.contract_id_strkey)?;
         request.threshold_config.validate()?;
@@ -563,6 +573,9 @@ impl<R: LedgerReader> ScanContractUseCase<R> {
         }
 
         let overall_status = compute_overall_status(&reports);
+        let span = tracing::Span::current();
+        span.record("entry.count", reports.len() as u64);
+        span.record("overall.status", tracing::field::display(overall_status));
 
         Ok(TTLReport {
             contract_id: request.contract_id_strkey,

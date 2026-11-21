@@ -223,6 +223,7 @@ impl SorobanRpcClient {
     }
 
     /// Internal generic JSON-RPC 2.0 request dispatcher with retry and exponential backoff middleware.
+    #[tracing::instrument(skip(self, params), fields(rpc.method = method, rpc.url = %self.rpc_url))]
     async fn send_rpc_request<P, R>(&self, method: &'static str, params: P) -> SentinelResult<R>
     where
         P: Serialize + Send,

@@ -44,6 +44,15 @@ pub use domain::{
     ScenarioError, StorageEntry, ThresholdConfig, DEFAULT_CRITICAL_LEDGERS,
     DEFAULT_WARNING_LEDGERS, MAX_BASELINE_FILE_BYTES, MAX_BUNDLE_FOOTPRINT_ENTRIES,
     SECONDS_PER_DAY, TARGET_LEDGER_CLOSE_SECONDS,
+    plan_bundle_footprints, plan_extension, plan_extension_with_cost, plan_restore_footprint,
+    AtRiskFootprint, BaselineDiff, BaselineDiffSummary, BaselineEntrySnapshot, BaselineSnapshot,
+    BundleError, BundleFootprint, ChangeCategory, DeferralReason, DeferredExtension, Durability,
+    EntryDiff, EntryType, ExtensionPlan, ExtensionPlanRequest, FootprintAccess,
+    FootprintValidation, FootprintValidator, InstanceStorageBreakdown, NetworkRentParameters,
+    PlannedExtension, ProtocolScenarioReport, RestoreError, RestorePlan, RiskLevel, SacAssetInfo,
+    ScenarioEntry, ScenarioEntryImpact, ScenarioError, StorageEntry, ThresholdConfig,
+    DEFAULT_CRITICAL_LEDGERS, DEFAULT_WARNING_LEDGERS, MAX_BASELINE_FILE_BYTES,
+    MAX_BUNDLE_FOOTPRINT_ENTRIES, SECONDS_PER_DAY, TARGET_LEDGER_CLOSE_SECONDS,
 };
 pub use error::{SentinelError, SentinelResult};
 pub use ports::{

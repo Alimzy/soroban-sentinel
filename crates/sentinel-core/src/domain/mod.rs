@@ -9,6 +9,7 @@ pub mod entry;
 pub mod events;
 pub mod footprint;
 pub mod planner;
+pub mod restore;
 pub mod risk;
 pub mod scenario;
 pub mod ttl;
@@ -32,6 +33,7 @@ pub use planner::{
     plan_extension, plan_extension_with_cost, DeferralReason, DeferredExtension, ExtensionPlan,
     ExtensionPlanRequest, PlannedExtension,
 };
+pub use restore::{plan_restore_footprint, RestoreError, RestorePlan};
 pub use risk::{
     evaluate_risk, RiskLevel, ThresholdConfig, DEFAULT_CRITICAL_LEDGERS, DEFAULT_WARNING_LEDGERS,
 };

@@ -60,6 +60,7 @@ pub fn derive_contract_code_key(wasm_hash: &[u8; 32]) -> SentinelResult<String> 
 ///
 /// Accepts base64 XDR corresponding to either a full [`LedgerEntry`] or [`LedgerEntryData`].
 /// Returns `Ok(Some([u8; 32]))` if the executable is WASM, or `Ok(None)` for built-in contracts.
+#[tracing::instrument(skip(entry_xdr_base64), fields(xdr.base64_len = entry_xdr_base64.len()))]
 pub fn extract_wasm_hash_from_instance_entry(
     entry_xdr_base64: &str,
 ) -> SentinelResult<Option<[u8; 32]>> {
