@@ -3,9 +3,11 @@
 pub mod auth;
 pub mod failover_rpc;
 pub mod key_expr;
+pub mod simulation;
 pub mod snapshot;
 pub mod soroban_rpc;
 pub mod wasm_sections;
+pub mod webhook;
 pub mod xdr_keys;
 
 pub use auth::{
@@ -13,6 +15,7 @@ pub use auth::{
 };
 pub use failover_rpc::{EndpointHealthSnapshot, FailoverConfig, MultiRpcFailoverReader};
 pub use key_expr::{parse_key_expr, MAX_KEY_EXPR_DEPTH, MAX_KEY_EXPR_LEN};
+pub use simulation::{build_extend_footprint_ttl_envelope, envelope_to_xdr_base64};
 pub use snapshot::{
     ReplayReader, SentinelSnapshot, SnapshotData, SnapshotHeader, SnapshotLedgerReader,
     SNAPSHOT_FORMAT_VERSION,
@@ -23,10 +26,12 @@ pub use soroban_rpc::{
     MAX_RPC_RESPONSE_BYTES,
 };
 pub use wasm_sections::{analyze_wasm, MAX_WASM_ANALYSIS_BYTES};
+pub use webhook::WebhookAlertNotifier;
 pub use xdr_keys::{
     derive_contract_code_key, derive_contract_instance_key, derive_persistent_key_from_scval,
     derive_persistent_symbol_key, derive_persistent_xdr_key, derive_sac_allowance_key,
-    derive_sac_balance_key, extract_instance_storage_breakdown, extract_sac_asset_info,
+    derive_sac_balance_key, derive_temporary_key_from_scval, derive_temporary_symbol_key,
+    extract_instance_storage_breakdown, extract_sac_asset_info,
     extract_wasm_hash_from_instance_entry, parse_contract_id, parse_sc_address, safe_xdr_limits,
     summarize_scval, KeyPatternMatcher, XDR_MAX_BYTE_LENGTH, XDR_MAX_RECURSION_DEPTH,
 };

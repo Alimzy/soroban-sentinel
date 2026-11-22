@@ -36,6 +36,8 @@ pub enum Commands {
     /// Scan contracts once from a TOML manifest
     Check(CheckArgs),
 
+    /// Audit contract storage placement, entry sizes, and cost-saving opportunities
+    AuditKeys(AuditKeysArgs),
     /// Generate a systemd or launchd service definition for autonomous watching
     InstallService(InstallServiceArgs),
 
@@ -50,6 +52,32 @@ pub enum Commands {
 
     /// Compare two saved JSON TTL reports without using RPC
     DiffReports(DiffReportsArgs),
+
+    /// Estimate the fee for extending a contract footprint TTL
+    Forecast(ForecastArgs),
+}
+
+/// Command-line arguments for forecast.
+#[derive(Args, Debug, Clone)]
+pub struct ForecastArgs {
+    #[arg(value_name = "CONTRACT_ID")]
+    pub contract_id: String,
+    #[arg(long, value_name = "LEDGER", value_parser = clap::value_parser!(u32).range(1..))]
+    pub extend_to: u32,
+    #[arg(long, value_name = "G...")]
+    pub source: String,
+    #[arg(long, default_value = "testnet")]
+    pub network: String,
+    #[arg(long, env = "SOROBAN_RPC_URL")]
+    pub rpc_url: Option<String>,
+    #[arg(long, default_value = "text", value_parser = ["text", "json"])]
+    pub format: String,
+    #[arg(long = "key", value_name = "SYMBOL")]
+    pub key: Vec<String>,
+    #[arg(long = "key-xdr", value_name = "BASE64_XDR")]
+    pub key_xdr: Vec<String>,
+    #[arg(long = "key-expr", value_name = "EXPR")]
+    pub key_expr: Vec<String>,
 }
 
 /// Command-line arguments for `sentinel init`.
@@ -143,7 +171,7 @@ pub struct DiffReportsArgs {
 /// Command-line arguments for the `sentinel scan` command.
 #[derive(Args, Debug, Clone)]
 pub struct ScanArgs {
-    /// Target Soroban smart contract address (C... Strkey format)
+    /// Target Soroban smart contract address (C... Strkey format) or a contract alias
     #[arg(value_name = "CONTRACT_ID")]
     pub contract_id: String,
 
@@ -206,6 +234,20 @@ pub struct ScanArgs {
     /// Launch the interactive TUI dashboard (requires the `tui` Cargo feature and a TTY)
     #[arg(long)]
     pub tui: bool,
+
+    /// Webhook URL for WARN/CRITICAL alerts
+    #[arg(
+        long = "alert-webhook",
+        env = "SENTINEL_ALERT_WEBHOOK",
+        value_name = "URL"
+    )]
+    pub alert_webhook: Option<String>,
+    /// Alert payload format
+    #[arg(long = "alert-kind", default_value = "slack", value_parser = ["slack", "discord"])]
+    pub alert_kind: String,
+    /// Minimum risk level that triggers an alert
+    #[arg(long = "alert-min-level", default_value = "warn", value_parser = ["warn", "critical"])]
+    pub alert_min_level: String,
 
     /// Replay an offline .sentinel-snap ledger snapshot instead of querying RPC
     #[arg(long = "snapshot", value_name = "PATH")]
@@ -345,6 +387,54 @@ pub struct CheckArgs {
     /// Report format
     #[arg(long, default_value = "text", value_parser = ["text", "json"])]
     pub format: String,
+}
+
+/// Command-line arguments for the `sentinel audit-keys` command.
+#[derive(Args, Debug, Clone)]
+pub struct AuditKeysArgs {
+    /// Target Soroban smart contract address (C... Strkey format)
+    #[arg(value_name = "CONTRACT_ID")]
+    pub contract_id: String,
+
+    /// Custom Soroban RPC endpoint URL (overrides the network preset)
+    #[arg(long, value_name = "URL", env = "SOROBAN_RPC_URL")]
+    pub rpc_url: Option<String>,
+
+    /// Target Stellar network
+    #[arg(long, default_value = "testnet", value_name = "NETWORK")]
+    pub network: String,
+
+    /// Output format: text or json
+    #[arg(long, default_value = "text", value_parser = ["text", "json"])]
+    pub format: String,
+
+    /// Persistent storage key symbols to inspect
+    #[arg(long = "key", value_name = "SYMBOL")]
+    pub key: Vec<String>,
+
+    /// Persistent storage key encoded as base64 ScVal XDR
+    #[arg(long = "key-xdr", value_name = "BASE64_XDR")]
+    pub key_xdr: Vec<String>,
+
+    /// Persistent storage key typed expression
+    #[arg(long = "key-expr", value_name = "EXPR")]
+    pub key_expr: Vec<String>,
+
+    /// Temporary storage key symbols to inspect
+    #[arg(long = "temp-key", value_name = "SYMBOL")]
+    pub temp_key: Vec<String>,
+
+    /// Temporary storage key typed expression
+    #[arg(long = "temp-key-expr", value_name = "EXPR")]
+    pub temp_key_expr: Vec<String>,
+
+    /// Custom RPC request timeout in seconds
+    #[arg(long = "rpc-timeout", value_name = "SECS")]
+    pub rpc_timeout: Option<u64>,
+
+    /// Maximum RPC retry attempts
+    #[arg(long = "rpc-max-retries", value_name = "N")]
+    pub rpc_max_retries: Option<u32>,
 }
 
 /// Command-line arguments for `sentinel install-service`.

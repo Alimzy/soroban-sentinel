@@ -13,6 +13,7 @@ use sentinel_core::domain::compare::{compare_reports, BaselineSnapshot, MAX_BASE
 use sentinel_core::domain::{RiskLevel, ThresholdConfig, DEFAULT_CRITICAL_LEDGERS};
 use sentinel_core::error::SentinelError;
 use sentinel_core::usecases::{ScanContractUseCase, ScanRequest, TTLReport};
+use sentinel_core::{AlertKind, AlertMinLevel, AlertNotifier, WebhookAlertNotifier};
 
 use crate::args::ScanArgs;
 #[cfg(feature = "parquet")]
@@ -197,7 +198,11 @@ fn emit_parquet(report: &TTLReport, path: Option<&str>) -> Result<(), String> {
     }
 }
 
-pub async fn run_scan(args: ScanArgs) -> i32 {
+pub async fn run_scan(mut args: ScanArgs) -> i32 {
+    if let Err(code) = apply_alias(&mut args) {
+        return code;
+    }
+
     #[cfg(not(feature = "tui"))]
     if args.tui {
         eprintln!(
@@ -383,6 +388,29 @@ pub async fn run_scan(args: ScanArgs) -> i32 {
         }
     };
 
+    if let Some(webhook) = args.alert_webhook.as_deref() {
+        let notifier = match WebhookAlertNotifier::new(webhook) {
+            Ok(notifier) => notifier,
+            Err(error) => {
+                eprintln!("Error: {error}");
+                return EXIT_INVALID_ARGS;
+            }
+        };
+        let kind = match args.alert_kind.as_str() {
+            "slack" => AlertKind::Slack,
+            "discord" => AlertKind::Discord,
+            _ => return EXIT_INVALID_ARGS,
+        };
+        let min_level = match args.alert_min_level.as_str() {
+            "warn" => AlertMinLevel::Warn,
+            "critical" => AlertMinLevel::Critical,
+            _ => return EXIT_INVALID_ARGS,
+        };
+        if let Err(_error) = notifier.notify(&report, kind, min_level).await {
+            eprintln!("Warning: alert delivery failed");
+        }
+    }
+
     #[cfg(feature = "tui")]
     if args.tui {
         return crate::commands::tui::run_tui(report, threshold_config, &args.network);
@@ -468,6 +496,70 @@ pub fn network_passphrase(network: &str) -> &'static str {
         "futurenet" => "Test SDF Future Network ; October 2022",
         "local" => "Standalone Network ; February 2017",
         _ => "",
+    }
+}
+
+/// Resolves a contract alias into a `C...` strkey before the scan starts.
+///
+/// A valid strkey passes through untouched. Aliases are read from the TOML file
+/// named by `SENTINEL_ALIASES`, or from `./sentinel-aliases.toml` when present:
+///
+/// ```toml
+/// [aliases]
+/// treasury = "C..."
+/// ```
+///
+/// Unknown targets without a close match fall through to the normal
+/// "Invalid contract address" handling.
+fn apply_alias(args: &mut ScanArgs) -> Result<(), i32> {
+    use sentinel_core::domain::alias::{AliasError, AliasRegistry};
+
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct AliasFile {
+        #[serde(default)]
+        aliases: std::collections::BTreeMap<String, String>,
+    }
+
+    let target = args.contract_id.trim().to_string();
+    if stellar_strkey::Contract::from_string(&target).is_ok() {
+        return Ok(());
+    }
+
+    let path = match std::env::var_os("SENTINEL_ALIASES").filter(|value| !value.is_empty()) {
+        Some(value) => std::path::PathBuf::from(value),
+        None => {
+            let default = std::path::PathBuf::from("sentinel-aliases.toml");
+            if !default.is_file() {
+                return Ok(());
+            }
+            default
+        }
+    };
+
+    let text = std::fs::read_to_string(&path).map_err(|error| {
+        eprintln!("Error: cannot read alias file {}: {error}", path.display());
+        EXIT_INVALID_ARGS
+    })?;
+    let file: AliasFile = toml::from_str(&text).map_err(|error| {
+        eprintln!("Error: invalid alias file {}: {error}", path.display());
+        EXIT_INVALID_ARGS
+    })?;
+    let registry = AliasRegistry::from_pairs(file.aliases).map_err(|error| {
+        eprintln!("Error: invalid alias file {}: {error}", path.display());
+        EXIT_INVALID_ARGS
+    })?;
+
+    match registry.resolve(&target) {
+        Ok(contract_id) => {
+            args.contract_id = contract_id;
+            Ok(())
+        }
+        Err(error @ AliasError::UnknownWithSuggestion { .. }) => {
+            eprintln!("Error: Invalid contract address: {error}");
+            Err(EXIT_INVALID_ARGS)
+        }
+        Err(_) => Ok(()),
     }
 }
 

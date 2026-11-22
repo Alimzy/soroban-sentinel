@@ -1,8 +1,9 @@
 //! Core pure domain models and calculations.
 
+pub mod alias;
 pub mod budget;
 pub mod bundle;
-pub mod cache;
+pub(crate) mod cache;
 pub mod cold_storage;
 pub mod compare;
 pub mod debt;
@@ -13,10 +14,12 @@ pub mod key_pattern;
 pub mod planner;
 pub mod restore;
 pub mod risk;
-pub mod scenario;
+pub(crate) mod scenario;
+pub mod storage_audit;
 pub mod ttl;
 pub mod wasm_analysis;
 
+pub use alias::{AliasError, AliasRegistry};
 pub use bundle::{
     plan_bundle_footprints, BundleError, BundleFootprint, MAX_BUNDLE_FOOTPRINT_ENTRIES,
 };
@@ -47,6 +50,10 @@ pub use risk::{
 pub use scenario::{
     evaluate_protocol_scenario, NetworkRentParameters, ProtocolScenarioReport, ScenarioEntry,
     ScenarioEntryImpact, ScenarioError,
+};
+pub use storage_audit::{
+    analyze_storage_entry, estimate_annual_rent_savings, AuditEntry, AuditFinding,
+    AuditFindingKind, StorageAuditReport, MAX_SOROBAN_ENTRY_BYTES,
 };
 pub use ttl::{
     calculate_remaining_ledgers, estimate_horizon_days, estimate_horizon_days_with_velocity,
