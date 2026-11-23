@@ -45,6 +45,7 @@ pub use entry::{Durability, EntryType, InstanceStorageBreakdown, SacAssetInfo, S
 pub use events::{
     classify_state_archival_event, ContractEvent, DecodedContractEvent, SorobanEventType,
     StateArchivalEventKind,
+};
 pub use fee_bump::{
     recommend_inclusion_fee, FeeBumpError, FeePercentiles, FeeRecommendation, FeeUrgency,
 };

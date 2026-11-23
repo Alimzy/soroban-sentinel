@@ -648,41 +648,35 @@ async fn test_get_ledger_entries_missing_required_fields_or_wrong_types_fail() {
 }
 
 #[tokio::test]
-async fn test_get_ledger_entries_second_chunk_fault_propagates_typed_error() {
+async fn test_get_ledger_entries_batch_truncated_response_returns_serialization_error() {
     let mock_server = MockServer::start().await;
-    let call_count = Arc::new(AtomicU32::new(0));
-    let call_count_clone = Arc::clone(&call_count);
 
     Mock::given(method("POST"))
         .and(path("/"))
-        .respond_with(move |req: &wiremock::Request| {
-            let chunk_num = call_count_clone.fetch_add(1, Ordering::SeqCst) + 1;
-            let body: Value = serde_json::from_slice(&req.body).expect("Valid request JSON");
-            let keys = body["params"]["keys"]
-                .as_array()
-                .expect("keys array in params");
+        .respond_with(|req: &wiremock::Request| {
+            let requests: Vec<Value> =
+                serde_json::from_slice(&req.body).expect("Valid batch request JSON");
 
-            if chunk_num == 1 {
-                assert_eq!(keys.len(), MAX_KEYS_PER_REQUEST);
-                ResponseTemplate::new(200).set_body_json(serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "result": {
-                        "latestLedger": 5400000,
-                        "entries": [{
-                            "key": keys[0],
-                            "xdr": "VALID_PLACEHOLDER",
-                            "liveUntilLedgerSeq": 5600000
-                        }]
-                    }
-                }))
-            } else {
-                // Second chunk returns truncated JSON
-                ResponseTemplate::new(200)
-                    .set_body_string(r#"{"jsonrpc":"2.0","id":1,"result":{"entries":[{"key":"#)
-            }
+            assert_eq!(requests.len(), 2, "Expected two batched RPC requests");
+            assert_eq!(requests[0]["method"], "getLedgerEntries");
+            assert_eq!(requests[1]["method"], "getLedgerEntries");
+            assert_eq!(
+                requests[0]["params"]["keys"].as_array().unwrap().len(),
+                MAX_KEYS_PER_REQUEST
+            );
+            assert_eq!(
+                requests[1]["params"]["keys"].as_array().unwrap().len(),
+                5
+            );
+
+            // A truncated batch response must produce a typed serialization error.
+            ResponseTemplate::new(200)
+                .insert_header("content-type", "application/json")
+                .set_body_string(
+                    r#"[{"jsonrpc":"2.0","id":1,"result":{"entries":[]}},{"jsonrpc":"2.0","id":2,"result":{"entries":["#,
+                )
         })
-        .expect(2)
+        .expect(1)
         .mount(&mock_server)
         .await;
 
@@ -694,11 +688,11 @@ async fn test_get_ledger_entries_second_chunk_fault_propagates_typed_error() {
     let err = client
         .get_ledger_entries(&keys)
         .await
-        .expect_err("Fault in second chunk must fail entire get_ledger_entries call");
+        .expect_err("Truncated batch response must fail get_ledger_entries");
 
     assert!(
         matches!(err, SentinelError::SerializationError(_)),
-        "Expected SerializationError from second chunk, got: {err:?}"
+        "Expected SerializationError from truncated batch response, got: {err:?}"
     );
     mock_server.verify().await;
 }

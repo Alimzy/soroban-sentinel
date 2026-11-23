@@ -2,15 +2,13 @@
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 use stellar_xdr::curr::{ReadXdr, ScVal, SorobanTransactionData};
 
 use crate::adapters::xdr_keys::{parse_contract_id, safe_xdr_limits};
 use crate::domain::events::{ContractEvent, DecodedContractEvent, SorobanEventType};
-use std::sync::Arc;
 
 use crate::domain::burn_rate::{
     calculate_burn_rate, LedgerCloseSample, DEFAULT_SAMPLE_WINDOW_LEDGERS,
